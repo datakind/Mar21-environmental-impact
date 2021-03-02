@@ -5,11 +5,11 @@ Please see the full project brief here: https://docs.google.com/document/d/1zRCG
 
 # Key Questions for the DataDive Event
 1. Summarize and/or describe the cost of a brownfield cleanup:
-    a. By phase (Phase I Assessment, Phase II Assessment, Cleanup and Remediation)
-    a. By location
-    a. Over time
-    a. By demographics
-    a. By type of redevelopment site (see Question #5)
+  - By phase (Phase I Assessment, Phase II Assessment, Cleanup and Remediation)
+  - By location
+  - Over time
+  - By demographics
+  - By type of redevelopment site (see Question #5)
 1. What benchmarks exist in the data; or, in other words, what does a “typical” cleanup look like? What do outliers look like?
 1. What similar groupings, or clusters, exist in the ACRES dataset, particularly in relation to the cost of a cleanup?
 1. What variables in the ACRES dataset are most predictive of the cost of a cleanup? Which can be excluded from the dataset entirely?
