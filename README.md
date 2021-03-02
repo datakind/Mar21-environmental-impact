@@ -5,16 +5,16 @@ Please see the full project brief here: https://docs.google.com/document/d/1zRCG
 
 # Key Questions for the DataDive Event
 1. Summarize and/or describe the cost of a brownfield cleanup:
-  a. By phase (Phase I Assessment, Phase II Assessment, Cleanup and Remediation)
-  b. By location
-  c. Over time
-  d. By demographics
-  e. By type of redevelopment site (see Question #5)
-2. What benchmarks exist in the data; or, in other words, what does a “typical” cleanup look like? What do outliers look like?
-3. What similar groupings, or clusters, exist in the ACRES dataset, particularly in relation to the cost of a cleanup?
-4. What variables in the ACRES dataset are most predictive of the cost of a cleanup? Which can be excluded from the dataset entirely?
-5. Using NLP techniques, what information can be gleaned about the type of property being cleaned up from the Description/History and Highlights fields?
-6. How long does it take to complete a Phase I assessment? A Phase II assessment? A cleanup?
-7. What proportion of cleanups reach the redevelopment phase? How long does redevelopment take, and what are typical costs?
+  1. By phase (Phase I Assessment, Phase II Assessment, Cleanup and Remediation)
+  1. By location
+  1. Over time
+  1. By demographics
+  1. By type of redevelopment site (see Question #5)
+1. What benchmarks exist in the data; or, in other words, what does a “typical” cleanup look like? What do outliers look like?
+1. What similar groupings, or clusters, exist in the ACRES dataset, particularly in relation to the cost of a cleanup?
+1. What variables in the ACRES dataset are most predictive of the cost of a cleanup? Which can be excluded from the dataset entirely?
+1. Using NLP techniques, what information can be gleaned about the type of property being cleaned up from the Description/History and Highlights fields?
+1. How long does it take to complete a Phase I assessment? A Phase II assessment? A cleanup?
+1. What proportion of cleanups reach the redevelopment phase? How long does redevelopment take, and what are typical costs?
 
 # Datasets with Suggested Uses
