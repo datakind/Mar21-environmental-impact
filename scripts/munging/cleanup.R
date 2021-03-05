@@ -35,9 +35,12 @@ clean_city_property <- function(x) {
         toupper
 }
 
+
+# Geo Data Cleaning -------------------------------------------------------
+
+
 # Loading Data
 geo_data <- read_csv('data/brownfields_data_with_county_geoid.zip')
-acs_data <- readxl::read_xlsx('data/national_acs5-2018_census.xlsx')
 
 # Remove All Missing and Unnecessary Columns
 geo_data_new <- geo_data %>% 
@@ -50,7 +53,7 @@ colnames(clean_columns) <- sapply(colnames(clean_columns), move_digits_to_back)
 
 
 # Apply Cleaning to individual values
-cleaning <- clean_columns[, 81:length(colnames(clean_columns))] %>% 
+clean_data <- clean_columns %>% 
     mutate(across(contains('Date') & contains('-'), as.Date, format = '%Y-%d-%m')) %>% 
     mutate_at(vars(Date_ICs_in_Place), as.Date, format = '%m/%d/%y') %>% # A few dates are not in the standard format
     mutate_if(~ length(unique(levels(as.factor(.x)))) < 100, as.factor) %>% # Convert shorter character values to factors
@@ -60,12 +63,10 @@ cleaning <- clean_columns[, 81:length(colnames(clean_columns))] %>%
 
 
 
-cleaning <- clean_columns[, 81:length(colnames(clean_columns))] %>%
-    mutate(across(contains('Date'), as.Date, format = '%Y-%d-%m')) %>%
-    mutate_if(~ length(unique(levels(as.factor(.x)))) < 10, as.factor) %>%
-    mutate_if(is.factor, ~ .x %>% fct_recode(Y = 'y',N = 'n', U = 'u')) %>%
-    
+# ACS Data Cleaning -------------------------------------------------------
 
+
+acs_data <- readxl::read_xlsx('data/national_acs5-2018_census.xlsx')
 
 # Ensure joining between ACS and GEO
 acs_data_new <- acs_data %>% 
