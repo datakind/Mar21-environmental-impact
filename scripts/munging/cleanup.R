@@ -35,6 +35,13 @@ clean_city_property <- function(x) {
         toupper
 }
 
+count_cntmtn_fnd <- function(x) {
+    x %>% 
+        select(contains('Cntmnt_Fnd')) %>% 
+        mutate(across(contains('Cntmnt_Fnd'), ~ ifelse(.x == 'Y', 1, 0))) %>% 
+        rowSums(na.rm = TRUE)
+}
+
 
 # Geo Data Cleaning -------------------------------------------------------
 
@@ -52,15 +59,20 @@ geo_data <- geo_data %>% rename_all(format_cols) %>% rename(GEOID = Geoid)
 colnames(geo_data) <- sapply(colnames(geo_data), move_digits_to_back)
 
 
+
 # Apply Cleaning to individual values
 geo_clean <- geo_data %>% 
-    mutate(across(contains('Date') & contains('-'), as.Date, format = '%Y-%d-%m')) %>% 
+    mutate(across(contains('Date') & contains('-'), as.Date, format = '%Y-%d-%m')) %>% # I don't think this does what I think it does - is it really checking for a hyphen?
     mutate_at(vars(Date_ICs_in_Place, Redev_Completion_Date), as.Date, format = '%m/%d/%y') %>% # A few dates are not in the standard format
     mutate_if(~ length(unique(levels(as.factor(.x)))) < 100, as.factor) %>% # Convert shorter character values to factors
-    mutate_if(is.factor, ~ .x %>% fct_recode(Y = 'y',N = 'n', U = 'u')) %>% # Recode those factors that don't match. 
+    mutate_if(is.factor, ~ .x %>% fct_recode(Y = 'x', Y = 'y',N = 'n', U = 'u')) %>% # Recode those factors that don't match. 
     mutate(Property_City_clean = clean_city_property(Property_City)) %>%
-    mutate_at(vars(GEOID), as.numeric)
+    mutate_at(vars(GEOID), as.numeric) %>% 
+    mutate(Num_Cntmtn_Fnd = count_cntmtn_fnd(.))
 
+
+
+    
 
 
 # ACS Data Cleaning -------------------------------------------------------
