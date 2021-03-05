@@ -63,8 +63,6 @@ brownfields %>%
 
 
 
-
-
 brownfields %>% 
   group_by(`Assessment Phase`) %>% 
   count(`Cleanup Required`) %>% 
@@ -88,6 +86,58 @@ brownfields %>%
 brownfields %>% 
   count(`Cntmnt Fnd-Other Metals`) # possibly need to recode "x"
 
-# recode 'x'
+# david'sfunction 
+move_digits_to_back <- function(x) {
+  if (grepl("^[0-9]{4}", x)) {
+    split_var <- strsplit(x, split = "_")[[1]]
+    paste(c(split_var[2:length(split_var)], split_var[1]), collapse = "_")
+  } else x
+}
+format_cols <- function(x) {
+  make_title_case <- function(x) {
+    ifelse(x == toupper(x), str_to_title(x), x)
+  }
+  x <- x %>% 
+    make_title_case() %>% 
+    str_replace_all('\\%', 'Pct') %>% 
+    str_replace_all('\\#', 'Num') %>% 
+    str_replace_all(':', '') %>% 
+    str_replace_all('-', '_') %>% 
+    str_replace_all('[[ ]]+', '_') %>% 
+    str_replace_all('[()]', '') %>% 
+    str_replace_all('\\?', '') %>% 
+    str_replace_all('/', '_')
+  x
+}
 
+# implement david's function
+brownfields_new <- brownfields %>% select(where(~!all(is.na(.x))))
+colnames(brownfields_new) <- sapply(colnames(brownfields_new), move_digits_to_back)
+clean_columns <- brownfields_new %>% rename_all(format_cols)
+colnames(clean_columns)
 
+# fix var content
+clean_columns %>% 
+  mutate(Cntmnt_Fnd_Other_Metals = case_when(Cntmnt_Fnd_Other_Metals == "x" ~ "Y",
+                                             TRUE ~ Cntmnt_Fnd_Other_Metals)) %>% 
+  count(Cntmnt_Fnd_Other_Metals)
+
+fnclean_cntmnt <- function(cntmnt){
+  mutate(cntmnt = case_when(cntmnt == "x" ~ "Y",
+                                             TRUE ~ cntmnt))
+}
+
+clean_columns %>% 
+  mutate_at(c("Cntmnt_Fnd_Other_Metals", "Cntmnt_Fnd_Petroleum"), fnclean_cntmnt)
+
+clean_columns %>% 
+  mutate(across(c("Cntmnt_Fnd_Other_Metals", "Cntmnt_Fnd_Petroleum"), fnclean_cntmnt)) %>% 
+  count(Cntmnt_Fnd_Other_Metals)
+
+clean_columns %>% 
+  mutate(Cntmnt_Fnd_Other_Metals = case_when(Cntmnt_Fnd_Other_Metals == "x" ~ "Y",
+                                             TRUE ~ Cntmnt_Fnd_Other_Metals)) %>% 
+  mutate(Cntmnt_Fnd_Petroleum = case_when(Cntmnt_Fnd_Petroleum == "x" ~ "Y",
+                                             TRUE ~ Cntmnt_Fnd_Petroleum)) 
+  
+  
