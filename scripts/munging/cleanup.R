@@ -55,7 +55,7 @@ colnames(geo_data) <- sapply(colnames(geo_data), move_digits_to_back)
 # Apply Cleaning to individual values
 geo_clean <- geo_data %>% 
     mutate(across(contains('Date') & contains('-'), as.Date, format = '%Y-%d-%m')) %>% 
-    mutate_at(vars(Date_ICs_in_Place), as.Date, format = '%m/%d/%y') %>% # A few dates are not in the standard format
+    mutate_at(vars(Date_ICs_in_Place, Redev_Completion_Date), as.Date, format = '%m/%d/%y') %>% # A few dates are not in the standard format
     mutate_if(~ length(unique(levels(as.factor(.x)))) < 100, as.factor) %>% # Convert shorter character values to factors
     mutate_if(is.factor, ~ .x %>% fct_recode(Y = 'y',N = 'n', U = 'u')) %>% # Recode those factors that don't match. 
     mutate(Property_City_clean = clean_city_property(Property_City)) %>%
