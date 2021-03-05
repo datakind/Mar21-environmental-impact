@@ -12,6 +12,7 @@ brownfields <- read_csv("./data/brownfields_data_with_county_geoid.zip", guess_m
 
 dim(brownfields)
 head(brownfields)[c(1:5,149)]
+glimpse(brownfields)
 
 colnames(brownfields)
 
@@ -36,11 +37,33 @@ phase_enva_ph02 <- brownfields %>%
 phase_suppla <- brownfields %>% 
   filter(`Assessment Phase` == "Supplemental Assessment")
 
-brownfields %>% 
-  count(`Cleanup Required`)
+# check var content
 
 brownfields <- brownfields %>% 
   mutate(`Cleanup Required` = str_to_upper(`Cleanup Required`)) # makes all categories in `Cleanup Required` capital
+
+
+brownfields %>% 
+  count(`Source of Assessment Funding`) %>% 
+  view() # different punctuation makes some funding sources appear as different entity
+
+brownfields %>% 
+  mutate(`Source of Assessment Funding` = case_when(
+    `Source of Assessment Funding` == "Alaska DEC" ~ "Alaska Department of Environmental Conservation",
+    `Source of Assessment Funding` == "Ale's White Lake Investment LLC" ~ "Alex's White Lake Investment LLC",
+    `Source of Assessment Funding` == "AmecFW" ~ "Amec Foster Wheeler",
+    `Source of Assessment Funding` == "ADEQ Resource Grant" ~ "ADEQ",
+    `Source of Assessment Funding` == "Anaheim Revelopment Agency" ~ "Anaheim Redevelopment Agency",
+    `Source of Assessment Funding` == "Apex Laboratories" ~ "Apex Labs",
+    #`Source of Assessment Funding` == "Augusta Canaly Authority" ~ "Augusta Canal Authority",
+    TRUE ~ `Source of Assessment Funding`
+  )) %>% 
+  count(`Source of Assessment Funding`) %>% 
+  view() 
+
+
+
+
 
 brownfields %>% 
   group_by(`Assessment Phase`) %>% 
@@ -48,9 +71,23 @@ brownfields %>%
   view() # some obs that has `Assessment Phase` is NA and `Cleanup Required ` is NA -- what does this mean?
 
 
-#### check and cleanup "phase I - environmental assessment" ####
 
-glimpse(phase_enva_ph01)
+#### check var 41 to 80 ####
 
-complete.cases(phase_enva_ph01)
+# note: var 1 - 40: emily chen, var 81 - last: david werner
+
+brownfields %>% 
+  count(`Cntmnt Fnd-Lead`) # possibly need to recode "x"
+
+brownfields %>% 
+  count(`Cntmnt Fnd-Other Metals`) # possibly need to recode "x"
+
+brownfields %>% 
+  count(`Cntmnt Fnd-Petroleum`) # possibly need to recode "x"
+
+brownfields %>% 
+  count(`Cntmnt Fnd-Other Metals`) # possibly need to recode "x"
+
+# recode 'x'
+
 
