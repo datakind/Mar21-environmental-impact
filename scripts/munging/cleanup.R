@@ -66,10 +66,10 @@ geo_clean <- geo_data %>%
 # ACS Data Cleaning -------------------------------------------------------
 
 
-acs_data <- readxl::read_xlsx('data/national_acs5-2018_census.xlsx')
+acs_data_raw <- readxl::read_xlsx('data/national_acs5-2018_census.xlsx')
 
 # Ensure joining between ACS and GEO
-acs_data_new <- acs_data %>% 
+acs_data <- acs_data_raw %>% 
     mutate_at(vars(GEOID), ~ .x %>% as.numeric())
 
 
