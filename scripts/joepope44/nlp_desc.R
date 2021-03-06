@@ -2,7 +2,7 @@ library(tidyverse)
 library(tidytext)
 library(topicmodels)
 library(tm)
-
+library(textmineR)
 
 # Data Handling -----------------------------------------------------------
 
@@ -41,6 +41,34 @@ review_dtm
 
 
 # LDA ---------------------------------------------------------------------
+
+custom_stopwords <- c("site", "property", "use", "former", "building")
+
+tidy_docs <- geo_text %>% 
+  select(coop_num, text) %>% 
+  unnest_tokens(output = word, 
+                input = text,
+                stopwords = c(stopwords::stopwords("en"), 
+                              stopwords::stopwords(source = "smart"),
+                              custom_stopwords),
+                token = "ngrams",
+                n_min = 1, n = 2) %>% 
+  count(coop_num, word) %>% 
+  tidytext::
+  filter(n>1) 
+
+d <- tidy_docs %>% 
+  cast_sparse(coop_num, word, n)
+
+
+# create a topic model
+m <- FitLdaModel(dtm = d, 
+                 calc_r2 = TRUE,
+                 k = 10,
+                 iterations = 100,
+                 burnin = 175)
+
+
 
 
 
