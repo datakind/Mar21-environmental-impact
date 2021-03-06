@@ -19,7 +19,8 @@ df = pd.read_csv('data/brownfields_data_with_county_geoid.csv')
 
 # cleaning up the column names for easier future use
 def format_colname(colname):
-    
+    colname = colname.lower()
+    colname = colname.replace('#', 'num')
     colname = colname.replace(' ', '_') #replace spaces with underscores 
     return colname
 
