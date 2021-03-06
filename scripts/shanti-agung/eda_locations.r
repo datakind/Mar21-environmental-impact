@@ -159,47 +159,72 @@ geo_epa %>%
   distinct(ACRES_Property_ID, Assessment_Phase, .keep_all = TRUE) %>% 
   group_by(EPA_Region, ACRES_Property_ID) %>% 
   summarise(n_phase = n()) %>% 
+  group_by(EPA_Region) %>% 
+  summarise(avg_phases = mean(n_phase)) %>% 
+  ungroup() %>% 
+  ggplot(aes(x = reorder(EPA_Region, avg_phases), y = avg_phases)) +
+  geom_bar(stat = "identity", fill = "chartreuse4") +
+  labs(title = "Average number of phases per ACRES property (1995 - 2020)",
+             x = "EPA Region",
+             y = "Number of phases") +
+  coord_flip()
+
+
+# what's the distribution of number of phases per property across region?
+geo_epa %>% 
+  filter(year > 1994) %>% 
+  select(-Assessment_Start_Date) %>% 
+  distinct(ACRES_Property_ID, Assessment_Phase, .keep_all = TRUE) %>% 
+  group_by(EPA_Region, ACRES_Property_ID) %>% 
+  summarise(n_phase = n()) %>% 
   ungroup() %>% 
   ggplot(aes(x = EPA_Region, fill = as.factor(n_phase))) +
-  geom_bar(position = "dodge")
+  geom_bar(position = "dodge") +
+  labs(title = "Phases per ACRES property (1995 - 2020)",
+       x = "EPA Region",
+       y = "Number of properties",
+       fill = "Number of phases per ACRES property"
+  ) +
+  theme(legend.position = "bottom")
 
-geo_clean %>% 
-  filter(ACRES_Property_ID == 58901 & Assessment_Phase == "Supplemental Assessment" & 
-           Assessment_Start_Date == "2008-08-14") %>% 
-  view()
-
-geo_clean %>% 
-  select(ACRES_Property_ID, EPA_Region, Assessment_Start_Date, Assessment_Phase,
-         Source_of_Assessment_Funding, Entity_Providing_Assmnt_Funds, Amt_of_Assessment_Funding,
-         Source_of_Cleanup_Funding, Amount_of_Cleanup_Funding) %>% 
-  filter(!is.na(Assessment_Start_Date)) %>% 
-  distinct(ACRES_Property_ID, Assessment_Start_Date, Assessment_Phase,
-           Source_of_Assessment_Funding, Entity_Providing_Assmnt_Funds,
-           Amt_of_Assessment_Funding, Source_of_Cleanup_Funding,
-           Amount_of_Cleanup_Funding,
-           .keep_all = TRUE) %>% 
-  filter(ACRES_Property_ID == 58901 & Assessment_Phase == "Supplemental Assessment") %>% 
-  .[2:3,] %>% 
-  view()
-
-geo_clean %>% 
-  select(ACRES_Property_ID, EPA_Region, Assessment_Start_Date, Assessment_Phase,
-         Source_of_Assessment_Funding, Entity_Providing_Assmnt_Funds, Amt_of_Assessment_Funding,
-         Source_of_Cleanup_Funding, Amount_of_Cleanup_Funding) %>% 
-  filter(!is.na(Assessment_Start_Date)) %>% 
-  distinct(ACRES_Property_ID, Assessment_Start_Date, Assessment_Phase,
-           .keep_all = TRUE) %>% 
-  filter(ACRES_Property_ID == 16087 & Assessment_Phase == "Supplemental Assessment") %>% 
-  view()
-
-geo_clean %>% 
-  select(ACRES_Property_ID, EPA_Region, Assessment_Start_Date, Assessment_Phase) %>% 
-  filter(!is.na(Assessment_Start_Date)) %>% 
-  mutate(year = year(Assessment_Start_Date)) %>% 
-  filter(year > 1994) %>% 
-  distinct(ACRES_Property_ID, Assessment_Start_Date, .keep_all = TRUE) %>% 
-  filter(ACRES_Property_ID == 16087 & Assessment_Phase == "Phase II Environmental Assessment") %>% 
-  view()
+# ** investigate duplicates **
+# geo_clean %>% 
+#   filter(ACRES_Property_ID == 58901 & Assessment_Phase == "Supplemental Assessment" & 
+#            Assessment_Start_Date == "2008-08-14") %>% 
+#   view()
+# 
+# geo_clean %>% 
+#   select(ACRES_Property_ID, EPA_Region, Assessment_Start_Date, Assessment_Phase,
+#          Source_of_Assessment_Funding, Entity_Providing_Assmnt_Funds, Amt_of_Assessment_Funding,
+#          Source_of_Cleanup_Funding, Amount_of_Cleanup_Funding) %>% 
+#   filter(!is.na(Assessment_Start_Date)) %>% 
+#   distinct(ACRES_Property_ID, Assessment_Start_Date, Assessment_Phase,
+#            Source_of_Assessment_Funding, Entity_Providing_Assmnt_Funds,
+#            Amt_of_Assessment_Funding, Source_of_Cleanup_Funding,
+#            Amount_of_Cleanup_Funding,
+#            .keep_all = TRUE) %>% 
+#   filter(ACRES_Property_ID == 58901 & Assessment_Phase == "Supplemental Assessment") %>% 
+#   .[2:3,] %>% 
+#   view()
+# 
+# geo_clean %>% 
+#   select(ACRES_Property_ID, EPA_Region, Assessment_Start_Date, Assessment_Phase,
+#          Source_of_Assessment_Funding, Entity_Providing_Assmnt_Funds, Amt_of_Assessment_Funding,
+#          Source_of_Cleanup_Funding, Amount_of_Cleanup_Funding) %>% 
+#   filter(!is.na(Assessment_Start_Date)) %>% 
+#   distinct(ACRES_Property_ID, Assessment_Start_Date, Assessment_Phase,
+#            .keep_all = TRUE) %>% 
+#   filter(ACRES_Property_ID == 16087 & Assessment_Phase == "Supplemental Assessment") %>% 
+#   view()
+# 
+# geo_clean %>% 
+#   select(ACRES_Property_ID, EPA_Region, Assessment_Start_Date, Assessment_Phase) %>% 
+#   filter(!is.na(Assessment_Start_Date)) %>% 
+#   mutate(year = year(Assessment_Start_Date)) %>% 
+#   filter(year > 1994) %>% 
+#   distinct(ACRES_Property_ID, Assessment_Start_Date, .keep_all = TRUE) %>% 
+#   filter(ACRES_Property_ID == 16087 & Assessment_Phase == "Phase II Environmental Assessment") %>% 
+#   view()
 
 # ACRES_Property_ID == 58901
 # ACRES_Property_ID == 16087
@@ -208,7 +233,37 @@ geo_clean %>%
   # Phase I Environmental Assessment: 2 times 
   # Phase II Environmental Assessment: 11 times -- one phase that stretch from 2004 - 2020, (receive funding diff amount per entry)
 
+# ** end investigate duplicates **
 
+# how long does each phase generally take? any pattern across epa region?
+
+geo_epa <- geo_clean %>% 
+  select(ACRES_Property_ID, EPA_Region, Assessment_Start_Date, Assessment_Completion_Date, Assessment_Phase) %>% 
+  filter(!is.na(Assessment_Start_Date)) %>% 
+  mutate(year = year(Assessment_Start_Date)) %>%
+  distinct(ACRES_Property_ID, Assessment_Start_Date, .keep_all = TRUE) 
+
+ph_duration <- geo_epa %>% 
+  filter(year > 1994) %>% 
+  mutate(phase_duration = Assessment_Completion_Date - Assessment_Start_Date + 1) %>% 
+  group_by(ACRES_Property_ID, Assessment_Phase) %>% 
+  mutate(total_duration = sum(phase_duration)) %>% # check for negative numbers
+  ungroup() %>% 
+  distinct(ACRES_Property_ID, EPA_Region, Assessment_Phase, total_duration, .keep_all = TRUE)
+
+# ph_duration %>% 
+#   filter(total_duration < 0)
+# 
+# ph_duration %>% 
+#   filter(ACRES_Property_ID == 90742)
+# 
+# 
+#   filter(ACRES_Property_ID == 16087 & Assessment_Phase == "Phase II Environmental Assessment") %>%
+#   view()
+
+
+
+# what's the number of funding per phase? do they differ across phase?
 
 
 # what are the average costs look like across region?
