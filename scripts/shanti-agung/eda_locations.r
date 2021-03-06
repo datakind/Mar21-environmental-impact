@@ -121,12 +121,15 @@ geo_epa %>%
 # how does the type of assessments varies between 1995 - 2020 across epa regions?
 
 # recreate geo_epa with required vars, this time an acres_property_id may appear multiple times
-# if the property undergoes multiple assessment phases
+# if the property undergoes multiple assessment phases, and/or
+# if a property experience several assessment-start-date for a type of assessment
 
 geo_epa <- geo_clean %>% 
   select(ACRES_Property_ID, EPA_Region, Assessment_Start_Date, Assessment_Phase) %>% 
   filter(!is.na(Assessment_Start_Date)) %>% 
-  mutate(year = year(Assessment_Start_Date))
+  mutate(year = year(Assessment_Start_Date)) %>%
+  distinct(ACRES_Property_ID, Assessment_Start_Date, .keep_all = TRUE) 
+
 
 geo_epa%>% 
   filter(year > 1994)%>% 
@@ -141,7 +144,72 @@ geo_epa%>%
        fill = "Assessment Phase"
   ) 
 
-# what's the average phase that a property experience? (out of the four)
+geo_epa %>% 
+  filter(year > 1994) %>% 
+  select(-Assessment_Start_Date) %>% 
+  distinct(ACRES_Property_ID, Assessment_Phase, .keep_all = TRUE) %>% 
+  ggplot(aes(x = EPA_Region, y = Assessment_Phase)) +
+  geom_count(color = "darkblue") +
+  theme(legend.position = "bottom")
+
+# what's the average number of phases that a property experience? (out of the four)
+geo_epa %>% 
+  filter(year > 1994) %>% 
+  select(-Assessment_Start_Date) %>% 
+  distinct(ACRES_Property_ID, Assessment_Phase, .keep_all = TRUE) %>% 
+  group_by(EPA_Region, ACRES_Property_ID) %>% 
+  summarise(n_phase = n()) %>% 
+  ungroup() %>% 
+  ggplot(aes(x = EPA_Region, fill = as.factor(n_phase))) +
+  geom_bar(position = "dodge")
+
+geo_clean %>% 
+  filter(ACRES_Property_ID == 58901 & Assessment_Phase == "Supplemental Assessment" & 
+           Assessment_Start_Date == "2008-08-14") %>% 
+  view()
+
+geo_clean %>% 
+  select(ACRES_Property_ID, EPA_Region, Assessment_Start_Date, Assessment_Phase,
+         Source_of_Assessment_Funding, Entity_Providing_Assmnt_Funds, Amt_of_Assessment_Funding,
+         Source_of_Cleanup_Funding, Amount_of_Cleanup_Funding) %>% 
+  filter(!is.na(Assessment_Start_Date)) %>% 
+  distinct(ACRES_Property_ID, Assessment_Start_Date, Assessment_Phase,
+           Source_of_Assessment_Funding, Entity_Providing_Assmnt_Funds,
+           Amt_of_Assessment_Funding, Source_of_Cleanup_Funding,
+           Amount_of_Cleanup_Funding,
+           .keep_all = TRUE) %>% 
+  filter(ACRES_Property_ID == 58901 & Assessment_Phase == "Supplemental Assessment") %>% 
+  .[2:3,] %>% 
+  view()
+
+geo_clean %>% 
+  select(ACRES_Property_ID, EPA_Region, Assessment_Start_Date, Assessment_Phase,
+         Source_of_Assessment_Funding, Entity_Providing_Assmnt_Funds, Amt_of_Assessment_Funding,
+         Source_of_Cleanup_Funding, Amount_of_Cleanup_Funding) %>% 
+  filter(!is.na(Assessment_Start_Date)) %>% 
+  distinct(ACRES_Property_ID, Assessment_Start_Date, Assessment_Phase,
+           .keep_all = TRUE) %>% 
+  filter(ACRES_Property_ID == 16087 & Assessment_Phase == "Supplemental Assessment") %>% 
+  view()
+
+geo_clean %>% 
+  select(ACRES_Property_ID, EPA_Region, Assessment_Start_Date, Assessment_Phase) %>% 
+  filter(!is.na(Assessment_Start_Date)) %>% 
+  mutate(year = year(Assessment_Start_Date)) %>% 
+  filter(year > 1994) %>% 
+  distinct(ACRES_Property_ID, Assessment_Start_Date, .keep_all = TRUE) %>% 
+  filter(ACRES_Property_ID == 16087 & Assessment_Phase == "Phase II Environmental Assessment") %>% 
+  view()
+
+# ACRES_Property_ID == 58901
+# ACRES_Property_ID == 16087
+  # Supplemental Assessment : 11 times (at different start-assessment-date)
+  # Cleanup Planning: 1 time
+  # Phase I Environmental Assessment: 2 times 
+  # Phase II Environmental Assessment: 11 times -- one phase that stretch from 2004 - 2020, (receive funding diff amount per entry)
+
+
+
 
 # what are the average costs look like across region?
 
@@ -151,5 +219,7 @@ geo_epa%>%
 # what's the length of assessment look like across epa regions?
 
 # contaminant types (metal etc) by epa regions
+  
+# cost!!
 
 
