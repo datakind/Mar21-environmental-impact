@@ -21,7 +21,16 @@ df = pd.read_csv('data/brownfields_data_with_county_geoid.csv')
 def format_colname(colname):
     colname = colname.lower()
     colname = colname.replace('#', 'num')
-    colname = colname.replace(' ', '_') #replace spaces with underscores 
+    colname = colname.replace('%', 'pct')
+    colname = colname.replace('-', '_')
+    colname = colname.replace(':', '')
+    colname = colname.replace(' ', '_')
+    colname = colname.replace('/', '_')
+    colname = colname.replace('(', '')
+    colname = colname.replace(')', '')
+    colname = colname.replace('[', '')
+    colname = colname.replace(']', '')
+    colname = colname.replace('?', '')
     return colname
 
 
@@ -31,4 +40,5 @@ for eachcol in colnames:
     newcolnames.append(format_colname(eachcol))
 
 
-
+# switch the column names
+df.columns = newcolnames
