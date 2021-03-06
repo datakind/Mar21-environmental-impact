@@ -11,5 +11,9 @@
 # importing libraries
 from datetime import datetime, timedelta
 import pandas as pd
+import numpy as np
+
+
+df = pd.read_csv('data/brownfields_data_with_county_geoid.csv')
 
 
