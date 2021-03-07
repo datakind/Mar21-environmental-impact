@@ -7,6 +7,7 @@
 
 # loading libraries
 library(tidyverse)
+library(leaflet)
 
 
 # Loading Data
