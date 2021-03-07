@@ -46,6 +46,19 @@ count_cntmtn_fnd <- function(x) {
 }
 
 
+sum_NA = function(x)
+{
+    if(all(is.na(x)))
+    {
+        return(NA)
+    }
+    else
+    {
+        return(sum(x,na.rm = T))
+    }
+
+}
+
 # Geo Data Cleaning -------------------------------------------------------
 
 
@@ -77,7 +90,7 @@ geo_clean = geo_data %>%
     ## Recode x to Y
     mutate(across(matches("^(Cntmnt|Media)_(?!.*Desc)",perl = T), function(a) ifelse(is.na(a),NA,as.numeric(a %in% c("x","Y"))))) %>%
     rowwise() %>%
-    mutate(Num_Cntmnt_Fnd = sum(c_across(matches("Cntmnt_Fnd(?!.*Desc)",perl = T)),na.rm = T)) %>%
+    mutate(Num_Cntmnt_Fnd = sum_NA(c_across(matches("Cntmnt_Fnd(?!.*Desc)",perl = T)))) %>%
     ungroup()
 
 
@@ -109,20 +122,33 @@ geo_clean = geo_clean %>% mutate(nchar_history = nchar(Description_History),
 ## Relation between historical use and contaminants found
 
 use_cntmnt = geo_clean %>% select(ACRES_Property_ID,matches("Cntmnt_Fnd|^use")) %>% distinct()
-			#%>% mutate(Cntmnt_Fnd_Not_Other = pmax(c_across(matches("Cntmnt_Fnd_(?!)")),na.rm = T))
 
-use_cntmnt_long = use_cntmnt %>% filter(use_rail == 1) %>% pivot_longer(matches("^Cntmnt_Fnd(?!.*Desc)",perl = T),names_to="Cntmnt_Fnd",values_to="Fnd") %>% filter(!is.na(Fnd),Fnd == 1)
+use_cntmnt_long = use_cntmnt %>% pivot_longer(matches("^Cntmnt_Fnd(?!.*Desc)",perl = T),names_to="Cntmnt_Fnd",values_to="Fnd") %>% filter(!is.na(Fnd),Fnd == 1)
 use_cntmnt_long = use_cntmnt_long %>% pivot_longer(matches("^use"),names_to="Use",values_to="value") %>% filter(!is.na(value),value == 1) %>% select(-value) %>% mutate(Cntmnt_Fnd = str_remove(Cntmnt_Fnd,"Cntmnt_Fnd_"),Use = str_remove(Use,"use_"))
 
 
+## Number of contaminants found in properties grouped by type of former use
+## Each property has usually more than one cntmnt, and more than one type of former use.
+
 g_abs = use_cntmnt_long %>% ggplot() +
- geom_bar(aes(x = Use, fill = Ctmnt_Fnd),position = "stack") +
+ geom_bar(aes(x = Use, fill = Cntmnt_Fnd),position = "stack") +
  theme(axis.text.x = element_text(angle = 45, hjust = 1))
 
 g_prop = use_cntmnt_long %>% ggplot() +
- geom_bar(aes(x = Use, fill = Ctmnt_Fnd),position = "fill") +
+ geom_bar(aes(x = Use, fill = Cntmnt_Fnd),position = "fill") +
  theme(axis.text.x = element_text(angle = 45, hjust = 1))
 
 grid.arrange(g_abs,g_prop,ncol = 2)
 g = arrangeGrob(g_abs,g_prop,ncol = 2)
 ggsave("scripts/lamiaz/Cntmnt_Fnd_in properties_former_use.png",g)
+
+## Nb of properties with contaminant found. This excludes from the count properties that have all Cntmnt_Fnd NA, as we don't knwo for sure that this means that there are no Cntmnts
+g_nb = use_cntmnt_long %>% distinct(ACRES_Property_ID,Use,Num_Cntmnt_Fnd) %>% 
+group_by(Use) %>% mutate(Num_Properties = n_distinct(ACRES_Property_ID), Use2 = paste(Use,Num_Properties,sep=" : ")) %>% ungroup %>%
+ggplot() + facet_wrap(vars(Use2)) + geom_histogram(aes(Num_Cntmnt_Fnd))
+g2 = arrangeGrob(g_nb)
+ggsave("scripts/lamiaz/Number_Cntmnt_Fnd_in_properties_former_use.png",g_nb)
+
+
+## TO DO
+## Do the same thing for Media instead of Cntmnt
