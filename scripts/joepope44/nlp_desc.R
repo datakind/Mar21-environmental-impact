@@ -2,7 +2,9 @@ library(tidyverse)
 library(tidytext)
 library(topicmodels)
 library(tm)
-library(textmineR)
+# library(textmineR)
+library(quanteda)
+library(seededlda)
 
 # Data Handling -----------------------------------------------------------
 
@@ -94,4 +96,35 @@ top_terms %>%
   facet_wrap(~ topic, scales = "free") +
   scale_y_reordered()
 
-terms(ac_lda, 5)
+
+# Seeded LDA --------------------------------------------------------------
+
+# Create the topics with a few keywords to guide the LDA model 
+dict <- dictionary(file = "scripts/joepope44/topics.yml")
+print(dict)
+
+# Create new corpus for seededlda, using quanteda format 
+q_corpus = corpus(geo_text$text, docnames = geo_text$coop_num)
+
+# Create tokens and pre-process them. Can try bigrams for better fits. 
+toks <- tokens(q_corpus, 
+               remove_numbers = TRUE,
+               remove_punct = TRUE,
+               remove_symbols = TRUE) %>%
+  # tokens_select("^[A-Za-z]+$", valuetype = "regex", min_nchar = 2) %>% 
+  tokens_compound(dict) 
+
+# Create DTM to put into model. These parameters could be tweaked further. 
+dfmt <- dfm(toks) %>% 
+  dfm_remove(c(stopwords('en'), custom_stopwords)) %>% 
+  dfm_trim(min_termfreq = 0.90, termfreq_type = "quantile", 
+           max_docfreq = 0.2, docfreq_type = "prop")
+
+# Set seed and run model. Residual will create a garbage model to fit other documents into. 
+set.seed(1234)
+slda <- textmodel_seededlda(dfmt, dict, residual = TRUE)
+print(terms(slda, 20))
+
+topic <- table(topics(slda))
+print(topic)
+
