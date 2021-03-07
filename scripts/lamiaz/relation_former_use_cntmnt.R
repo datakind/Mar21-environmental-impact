@@ -142,8 +142,11 @@ grid.arrange(g_abs,g_prop,ncol = 2)
 g = arrangeGrob(g_abs,g_prop,ncol = 2)
 ggsave("scripts/lamiaz/Cntmnt_Fnd_in properties_former_use.png",g)
 
-## Nb of properties with contaminant found. This excludes from the count properties that have all Cntmnt_Fnd NA, as we don't knwo for sure that this means that there are no Cntmnts
-g_nb = use_cntmnt_long %>% distinct(ACRES_Property_ID,Use,Num_Cntmnt_Fnd) %>% 
+## Nb of properties with contaminant found. We exclude from the count properties that have all Cntmnt_Fnd NA, as we don't knwo for sure that this means that there are no Cntmnts, but keep the ones with Num_Count_Fnd = 0
+use_cntmnt_long_01 = use_cntmnt %>% pivot_longer(matches("^Cntmnt_Fnd(?!.*Desc)",perl = T),names_to="Cntmnt_Fnd",values_to="Fnd") %>% filter(!is.na(Fnd))
+use_cntmnt_long_01 = use_cntmnt_long_01 %>% pivot_longer(matches("^use"),names_to="Use",values_to="value") %>% filter(!is.na(value),value == 1) %>% select(-value) %>% mutate(Cntmnt_Fnd = str_remove(Cntmnt_Fnd,"Cntmnt_Fnd_"),Use = str_remove(Use,"use_"))
+
+g_nb = use_cntmnt_long_01 %>% distinct(ACRES_Property_ID,Use,Num_Cntmnt_Fnd) %>% 
 group_by(Use) %>% mutate(Num_Properties = n_distinct(ACRES_Property_ID), Use2 = paste(Use,Num_Properties,sep=" : ")) %>% ungroup %>%
 ggplot() + facet_wrap(vars(Use2)) + geom_histogram(aes(Num_Cntmnt_Fnd))
 g2 = arrangeGrob(g_nb)
