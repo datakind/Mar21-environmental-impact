@@ -10,6 +10,23 @@ library(tidyverse)
 library(leaflet)
 
 
-# Loading Data
+# loading data
 df <- read_csv('data/brownfields_data_with_county_geoid.zip')
+
+# clean up column names
+colnames_array <- colnames(df)
+newcolnames <- gsub(' ', '_', 
+                    gsub('%', 'pct', 
+                         gsub('#', 'num', 
+                              gsub('-', '_', 
+                                   gsub(':', '', 
+                                        gsub('/', '_', 
+                                             gsub('\\(', '', 
+                                                  gsub('\\)', '', 
+                                                       gsub("\\[", '', 
+                                                            gsub("\\]", '', 
+                                                                 gsub('?', '', tolower(colnames_array))))))))))))
+
+colnames(df) <- newcolnames
+
 
