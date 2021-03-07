@@ -2,3 +2,5 @@
 .Rproj.user
 .Rhistory
 .Ruserdata
+data/brownfields_data_with_county_geoid.csv
+
