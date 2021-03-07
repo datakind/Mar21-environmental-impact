@@ -121,7 +121,7 @@ geo_epa %>%
 # how does the type of assessments varies between 1995 - 2020 across epa regions?
 
 # recreate geo_epa with required vars, this time an acres_property_id may appear multiple times
-# if the property undergoes multiple assessment phases, and/or
+# e.g., if the property undergoes multiple assessment phases, and/or
 # if a property experience several assessment-start-date for a type of assessment
 
 geo_epa <- geo_clean %>% 
@@ -180,60 +180,12 @@ geo_epa %>%
   ungroup() %>% 
   ggplot(aes(x = EPA_Region, fill = as.factor(n_phase))) +
   geom_bar(position = "dodge") +
-  labs(title = "Phases per ACRES property (1995 - 2020)",
+  labs(title = "Assessment Phases per ACRES property (1995 - 2020)",
        x = "EPA Region",
        y = "Number of properties",
        fill = "Number of phases per ACRES property"
   ) +
   theme(legend.position = "bottom")
-
-# ** investigate duplicates **
-# geo_clean %>% 
-#   filter(ACRES_Property_ID == 58901 & Assessment_Phase == "Supplemental Assessment" & 
-#            Assessment_Start_Date == "2008-08-14") %>% 
-#   view()
-# 
-# geo_clean %>% 
-#   select(ACRES_Property_ID, EPA_Region, Assessment_Start_Date, Assessment_Phase,
-#          Source_of_Assessment_Funding, Entity_Providing_Assmnt_Funds, Amt_of_Assessment_Funding,
-#          Source_of_Cleanup_Funding, Amount_of_Cleanup_Funding) %>% 
-#   filter(!is.na(Assessment_Start_Date)) %>% 
-#   distinct(ACRES_Property_ID, Assessment_Start_Date, Assessment_Phase,
-#            Source_of_Assessment_Funding, Entity_Providing_Assmnt_Funds,
-#            Amt_of_Assessment_Funding, Source_of_Cleanup_Funding,
-#            Amount_of_Cleanup_Funding,
-#            .keep_all = TRUE) %>% 
-#   filter(ACRES_Property_ID == 58901 & Assessment_Phase == "Supplemental Assessment") %>% 
-#   .[2:3,] %>% 
-#   view()
-# 
-# geo_clean %>% 
-#   select(ACRES_Property_ID, EPA_Region, Assessment_Start_Date, Assessment_Phase,
-#          Source_of_Assessment_Funding, Entity_Providing_Assmnt_Funds, Amt_of_Assessment_Funding,
-#          Source_of_Cleanup_Funding, Amount_of_Cleanup_Funding) %>% 
-#   filter(!is.na(Assessment_Start_Date)) %>% 
-#   distinct(ACRES_Property_ID, Assessment_Start_Date, Assessment_Phase,
-#            .keep_all = TRUE) %>% 
-#   filter(ACRES_Property_ID == 16087 & Assessment_Phase == "Supplemental Assessment") %>% 
-#   view()
-# 
-# geo_clean %>% 
-#   select(ACRES_Property_ID, EPA_Region, Assessment_Start_Date, Assessment_Phase) %>% 
-#   filter(!is.na(Assessment_Start_Date)) %>% 
-#   mutate(year = year(Assessment_Start_Date)) %>% 
-#   filter(year > 1994) %>% 
-#   distinct(ACRES_Property_ID, Assessment_Start_Date, .keep_all = TRUE) %>% 
-#   filter(ACRES_Property_ID == 16087 & Assessment_Phase == "Phase II Environmental Assessment") %>% 
-#   view()
-
-# ACRES_Property_ID == 58901
-# ACRES_Property_ID == 16087
-  # Supplemental Assessment : 11 times (at different start-assessment-date)
-  # Cleanup Planning: 1 time
-  # Phase I Environmental Assessment: 2 times 
-  # Phase II Environmental Assessment: 11 times -- one phase that stretch from 2004 - 2020, (receive funding diff amount per entry)
-
-# ** end investigate duplicates **
 
 # how long does each phase generally take? any pattern across epa region?
 
@@ -243,38 +195,106 @@ geo_epa <- geo_clean %>%
   mutate(year = year(Assessment_Start_Date)) %>%
   distinct(ACRES_Property_ID, Assessment_Start_Date, .keep_all = TRUE) 
 
+# proportion of obs with missing Assessment_Completion_Date
+sum(is.na(geo_epa$Assessment_Completion_Date))/ dim(geo_epa)[[1]] # when generating ph_duration: obs with missing Assessment_Completion_Date will be removed
+
+# numbers of obs where Assessment-Completion-Date is earlier than Assessment-Start-Date
+geo_epa %>% 
+  mutate(flag_dates = Assessment_Completion_Date < Assessment_Start_Date) %>% 
+  count(flag_dates) # when generating ph_duration: obs where Assessment_Completion_Date < Assessment_Start_Date will be removed 
+
 ph_duration <- geo_epa %>% 
   filter(year > 1994) %>% 
+  filter(!is.na(Assessment_Completion_Date)) %>% 
+  filter(Assessment_Completion_Date >= Assessment_Start_Date) %>% 
   mutate(phase_duration = Assessment_Completion_Date - Assessment_Start_Date + 1) %>% 
   group_by(ACRES_Property_ID, Assessment_Phase) %>% 
-  mutate(total_duration = sum(phase_duration)) %>% # check for negative numbers
+  mutate(total_duration = sum(phase_duration)) %>% 
   ungroup() %>% 
-  distinct(ACRES_Property_ID, EPA_Region, Assessment_Phase, total_duration, .keep_all = TRUE)
+  distinct(ACRES_Property_ID, EPA_Region, Assessment_Phase, total_duration, .keep_all = TRUE) %>% 
+  mutate(cat_duration = case_when(total_duration == 1 ~ "1day",
+                                total_duration > 1 & total_duration <= 7 ~ "1wk",
+                                total_duration > 7 & total_duration <= 31 ~ "1wk-1mn",
+                                total_duration > 31 & total_duration <= (6*30) ~ "1-6mns",
+                                total_duration > (6*30) & total_duration <= (12*30) ~ "6mhs-1yr",
+                                TRUE ~ ">1yr")) %>% 
+  mutate(cat_duration = factor(cat_duration, levels = c("1day","1wk", "1wk-1mn", "1-6mns", "6mhs-1yr", ">1yr"))) 
 
-# ph_duration %>% 
-#   filter(total_duration < 0)
-# 
-# ph_duration %>% 
-#   filter(ACRES_Property_ID == 90742)
-# 
-# 
-#   filter(ACRES_Property_ID == 16087 & Assessment_Phase == "Phase II Environmental Assessment") %>%
-#   view()
+# how long does each phase generally take?
+ph_duration %>% 
+  select(ACRES_Property_ID, EPA_Region, Assessment_Phase, total_duration) %>% 
+  distinct(ACRES_Property_ID, EPA_Region, Assessment_Phase, total_duration) %>% 
+  ggplot(aes(x = Assessment_Phase, y = total_duration)) +
+  geom_boxplot() +
+  coord_flip()
 
-
-
-# what's the number of funding per phase? do they differ across phase?
-
-
-# what are the average costs look like across region?
-
-
-# what does the average cost look like by region and assessment type?
-
-# what's the length of assessment look like across epa regions?
-
-# contaminant types (metal etc) by epa regions
+ph_duration %>% 
+  select(ACRES_Property_ID, EPA_Region, Assessment_Phase, total_duration) %>% 
+  distinct(ACRES_Property_ID, EPA_Region, Assessment_Phase, total_duration) %>% 
+  ggplot(aes(x = total_duration, color = Assessment_Phase)) +
+  geom_freqpoly()
   
-# cost!!
+
+ph_duration %>% 
+  select(ACRES_Property_ID, EPA_Region, Assessment_Phase, total_duration) %>% 
+  distinct(ACRES_Property_ID, EPA_Region, Assessment_Phase, total_duration) %>% 
+  ggplot(aes(x = total_duration, fill = Assessment_Phase)) +
+  geom_histogram() +
+  facet_wrap(~Assessment_Phase, scales = "free") +
+  labs(title = "Duration of assessment phases (1995 - 2020)",
+       x = "Duration (days)",
+       y = "Count") +
+  theme(legend.position = "none")
+
+ph_duration %>% 
+  select(ACRES_Property_ID, EPA_Region, Assessment_Phase, cat_duration) %>% 
+  distinct(ACRES_Property_ID, EPA_Region, Assessment_Phase, cat_duration) %>% 
+  ggplot(aes(x = Assessment_Phase, fill = cat_duration)) +
+  geom_bar(position = "dodge") +
+  theme(axis.text.x = element_text(angle = 25, hjust = 1),
+        axis.title.x = element_blank()) +
+  labs(title = "Duration of assessment phases (1995 - 2020)",
+       y = "Count",
+       fill = "Assessment duration"
+  )
+  
+# how long does each phase generally take - any pattern across epa region?
+
+ph_duration %>% 
+  select(ACRES_Property_ID, EPA_Region, Assessment_Phase, total_duration) %>% 
+  distinct(ACRES_Property_ID, EPA_Region, Assessment_Phase, total_duration) %>% 
+  ggplot(aes(x = EPA_Region, y = total_duration, color = Assessment_Phase)) +
+  geom_boxplot() +
+  facet_wrap(~ Assessment_Phase) +
+  coord_flip() +
+  labs(title = "Duration of assessment phase by type and EPA region (1995 - 2020)",
+       x = "EPA Region",
+       y = "Duration (days)") +
+  theme(legend.position = "none")
+
+ph_duration %>% 
+  select(ACRES_Property_ID, EPA_Region, Assessment_Phase, cat_duration) %>% 
+  distinct(ACRES_Property_ID, EPA_Region, Assessment_Phase, cat_duration) %>% 
+  ggplot(aes(x = EPA_Region, fill = cat_duration)) +
+  geom_bar() +
+  labs(title = "Duration of assessment phase by EPA region (1995 - 2020)",
+       x = "EPA Region",
+       y = "Count",
+       fill = "Duration")
+
+ph_duration %>% 
+  select(ACRES_Property_ID, EPA_Region, Assessment_Phase, cat_duration) %>% 
+  distinct(ACRES_Property_ID, EPA_Region, Assessment_Phase, cat_duration) %>% 
+  ggplot(aes(x = EPA_Region, fill = cat_duration)) +
+  geom_bar() +
+  facet_wrap(~ Assessment_Phase, scale = "free") +
+  labs(title = "Duration of assessment phase (1995 - 2020)",
+       x = "EPA Region",
+       y = "Count",
+       fill = "Duration")
+
+
+  
+
 
 
