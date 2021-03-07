@@ -121,7 +121,7 @@ geo_clean = geo_clean %>% mutate(nchar_history = nchar(Description_History),
 
 ## Relation between historical use and contaminants found
 
-use_cntmnt = geo_clean %>% select(ACRES_Property_ID,matches("Cntmnt_Fnd|^use")) %>% distinct()
+use_cntmnt = geo_clean %>% select(ACRES_Property_ID,Property_Size,matches("Cntmnt_Fnd|^use")) %>% distinct()
 
 use_cntmnt_long = use_cntmnt %>% pivot_longer(matches("^Cntmnt_Fnd(?!.*Desc)",perl = T),names_to="Cntmnt_Fnd",values_to="Fnd") %>% filter(!is.na(Fnd),Fnd == 1)
 use_cntmnt_long = use_cntmnt_long %>% pivot_longer(matches("^use"),names_to="Use",values_to="value") %>% filter(!is.na(value),value == 1) %>% select(-value) %>% mutate(Cntmnt_Fnd = str_remove(Cntmnt_Fnd,"Cntmnt_Fnd_"),Use = str_remove(Use,"use_"))
@@ -150,8 +150,55 @@ g_nb = use_cntmnt_long_01 %>% distinct(ACRES_Property_ID,Use,Num_Cntmnt_Fnd) %>%
 group_by(Use) %>% mutate(Num_Properties = n_distinct(ACRES_Property_ID), Use2 = paste(Use,Num_Properties,sep=" : ")) %>% ungroup %>%
 ggplot() + facet_wrap(vars(Use2)) + geom_histogram(aes(Num_Cntmnt_Fnd))
 g2 = arrangeGrob(g_nb)
-ggsave("scripts/lamiaz/Number_Cntmnt_Fnd_in_properties_former_use.png",g_nb)
+ggsave("scripts/lamiaz/Number_Cntmnt_Fnd_in_properties_former_use.png",g2)
+
+g_size = use_cntmnt_long_01 %>% distinct(ACRES_Property_ID,Num_Cntmnt_Fnd,Use,Property_Size) %>% 
+ggplot() + facet_wrap(vars(Use)) + geom_point(aes(Property_Size,Num_Cntmnt_Fnd))
 
 
-## TO DO
+
 ## Do the same thing for Media instead of Cntmnt
+
+use_media_affected = geo_clean %>% select(ACRES_Property_ID,Property_Size,matches("Media_Affected|^use")) %>% distinct()
+
+use_media_affected_long01 = use_media_affected %>% pivot_longer(matches("Media_Affected"),names_to="Media_Affected",values_to="value_media") %>% filter(!is.na(value_media),value_media == 1)
+use_media_affected_long01 = use_media_affected_long01 %>% pivot_longer(matches("^use"),names_to="Use",values_to="use_value") %>% filter(!is.na(use_value),use_value==1) %>% select(-use_value) %>% mutate(Media_Affected = str_remove(Media_Affected,"Media_Affected_"),Use = str_remove(Use,"use_"))
+
+
+## Media affected found in properties grouped by type of former use
+## Each property has usually more than one type of former use.
+
+g_abs = use_media_affected_long01 %>% ggplot() +
+ geom_bar(aes(x = Use, fill = Media_Affected),position = "stack") +
+ theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+g_prop = use_media_affected_long01 %>% ggplot() +
+ geom_bar(aes(x = Use, fill = Media_Affected),position = "fill") +
+ theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+grid.arrange(g_abs,g_prop,ncol = 2)
+g3 = arrangeGrob(g_abs,g_prop,ncol = 2)
+ggsave("scripts/lamiaz/Media_Affected_in_properties_former_use.png",g3)
+
+
+## Media Cleaned
+use_media_cleaned = geo_clean %>% select(ACRES_Property_ID,Property_Size,matches("Media_Clnd|^use")) %>% distinct()
+
+use_media_cleaned_long01 = use_media_cleaned %>% pivot_longer(matches("Media_Clnd"),names_to="Media_Cleaned",values_to="value_media") %>% filter(!is.na(value_media),value_media == 1)
+use_media_cleaned_long01 = use_media_cleaned_long01 %>% pivot_longer(matches("^use"),names_to="Use",values_to="use_value") %>% filter(!is.na(use_value),use_value==1) %>% select(-use_value) %>% mutate(Media_Cleaned = str_remove(Media_Cleaned,"Media_Clnd_"),Use = str_remove(Use,"use_"))
+
+
+## Media cleaned found in properties grouped by type of former use
+## Each property has usually more than one type of former use.
+
+g_abs = use_media_cleaned_long01 %>% ggplot() +
+ geom_bar(aes(x = Use, fill = Media_Cleaned),position = "stack") +
+ theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+g_prop = use_media_cleaned_long01 %>% ggplot() +
+ geom_bar(aes(x = Use, fill = Media_Cleaned),position = "fill") +
+ theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+grid.arrange(g_abs,g_prop,ncol = 2)
+g4 = arrangeGrob(g_abs,g_prop,ncol = 2)
+ggsave("scripts/lamiaz/Media_Cleaned_in_properties_former_use.png",g4)
