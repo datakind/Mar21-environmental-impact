@@ -45,34 +45,14 @@ acres_dtm <- DocumentTermMatrix(acres_corpus)
 review_dtm = removeSparseTerms(acres_dtm, 0.999)
 review_dtm
 
-
+# Remove documents with zero words (may not be needed after filtering out NAs)
 raw.sum <- apply(review_dtm, 1, FUN=sum)
 dtm <- review_dtm[raw.sum != 0, ]
 
 
 # LDA ---------------------------------------------------------------------
 
-# tidy_docs <- geo_text %>% 
-#   select(coop_num, text) %>% 
-#   unnest_tokens(output = word, 
-#                 input = text,
-#                 stopwords = c(stopwords::stopwords("en"), 
-#                               stopwords::stopwords(source = "smart"),
-#                               custom_stopwords),
-#                 token = "words") %>% 
-#   count(coop_num, word) %>% 
-#   filter(n>5)
-# 
-# d <- tidy_docs %>% 
-#   cast_sparse(coop_num, word, n)
-# 
-# # create a topic model
-# m <- FitLdaModel(dtm = d, 
-#                  calc_r2 = TRUE,
-#                  k = 4,
-#                  iterations = 10,
-#                  burnin = 5)
-
+# The results from this were not that insightful. See SeededLDA section for a better approach. 
 
 rm(ac_lda)
 ac_lda <- LDA(dtm, k = 6, control = list(seed = 1234))
@@ -99,6 +79,8 @@ top_terms %>%
 
 # Seeded LDA --------------------------------------------------------------
 
+# https://github.com/koheiw/seededlda
+
 # Create the topics with a few keywords to guide the LDA model 
 dict <- dictionary(file = "scripts/joepope44/topics.yml")
 print(dict)
@@ -122,9 +104,36 @@ dfmt <- dfm(toks) %>%
 
 # Set seed and run model. Residual will create a garbage model to fit other documents into. 
 set.seed(1234)
-slda <- textmodel_seededlda(dfmt, dict, residual = TRUE)
+slda <- textmodel_seededlda(dfmt, dict, residual = TRUE, weight = 0.1)
 print(terms(slda, 20))
 
 topic <- table(topics(slda))
 print(topic)
+
+
+
+# Tranform Model Back to Document Topics for Merging ----------------------
+
+# get the top topic for each document
+top_topics <- apply(slda$theta, 1, function(x) names(x)[which.max(x)][1])
+
+# Merge together. Now each document has a label from its top topic
+# Note that in LDA a document can "belong" to multiple topics. Here we are just taking the top topic. 
+df <- cbind(geo_text, top_topics)
+rownames(df) <- NULL
+
+write_csv(df, "scripts/joepope44/seeded_lda_output.csv")
+
+# Next Steps --------------------------------------------------------------
+
+# TODO 
+# Calculate efficacy of model 
+# Tweak parameters 
+# Tweak topics.yml to narrow definitions 
+
+
+
+
+
+
 
