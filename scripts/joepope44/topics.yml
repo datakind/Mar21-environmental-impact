@@ -1,0 +1,6 @@
+housing: [house*, housing, apartment*, garage, shed]
+oils: [gas*, diesel, oil, petroleum, solvent, asphalt, fuel, auto*, truck, bus, radiator, muffler]
+railroad: [rail*, train, depot, tracks]
+commerical: [commerical, industrial, textile, mill, factor*, power, manufactur*]
+agriculture: [farm, barn*, agri*, tractor, pesticide, herbicide, livestock, animal*]
+mining: [mine, mining, strip]
