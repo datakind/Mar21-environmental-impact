@@ -89,6 +89,7 @@ phase_4_map <- leaflet(phase_4_df) %>% addTiles() %>%
   )
 phase_4_map
 
+
 # combined maps 
 
 combined_df <- subset(df, select = c(acres_property_id, property_latitude, property_longitude, assessment_phase))
@@ -96,6 +97,8 @@ combined_df <- combined_df %>% distinct()
 combined_df <- combined_df[which(combined_df$assessment_phase != "NA"), ]
 
 col_pal <- colorFactor(c("red", "blue", "green", "orange"), domain = c("Phase I Environmental Assessment", "Phase II Environmental Assessment", "Cleanup Planning", "Supplemental Assessment"))
+
+# without leaflet clusters
 combined_map <- leaflet(combined_df) %>% addTiles() %>%
                   addCircleMarkers(~property_longitude, ~property_latitude, 
                     radius = ~ifelse(assessment_phase == "Supplemental Assessment", 5, 2), 
@@ -106,5 +109,18 @@ combined_map <- leaflet(combined_df) %>% addTiles() %>%
   )
 
 combined_map
+
+# with leaflet clusters
+combined_map_clustered <- leaflet(combined_df) %>% addTiles() %>%
+  addCircleMarkers(~property_longitude, ~property_latitude, 
+                   radius = ~ifelse(assessment_phase == "Supplemental Assessment", 5, 2), 
+                   color = ~col_pal(assessment_phase), 
+                   fillOpacity = ~ifelse(assessment_phase == "Supplemental Assessment", 0.25, 0.5), 
+                   label = ~as.character(acres_property_id), 
+                   clusterOptions = markerClusterOptions()
+  )
+
+combined_map_clustered
+
 
 
