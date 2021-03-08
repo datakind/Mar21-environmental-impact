@@ -119,10 +119,16 @@ properties = properties %>% mutate(commercial_building = str_detect(`Description
 									parking = str_detect(`Description/History`,"(?i)parking"),	
 									school = str_detect(`Description/History`,"(?i)school"),
 									industrial = str_detect(`Description/History`,"(?i)industr(?:ial|y)"),
-									rail = str_detect(`Description/History`,"(?i)\\brail|\\btrain"),
+									rail = str_detect(`Description/History`,"(?i)\\brail|\\btrains?\\b"),
 									vacant = str_detect(`Description/History`,"(?i)\\bvacant"),
 									farm_land = str_detect(`Description/History`,"(?i)(?:farm|agricultural)[a-z/\\-]*\\s*lands?\\b"),
 									forest = str_detect(`Description/History`,"(?i)forest|\\btimber\\b|\\bwood"),
 									wet_land = str_detect(`Description/History`,"(?i)\\bwet\\s+land|\\bswamp"),
-									junk_yard = str_detect(`Description/History`,"(?i)(?:junk|scrap|salvage)[a-z/\\-]*\\s*yard"))
+									junk_yard = str_detect(`Description/History`,"(?i)(?:junk|scrap|salvage)[a-z/\\-]*\\s*yard"),
+									undeveloped = str_detect(`Description/History`,"(?i)undeveloped")
+									)
 	
+
+properties = properties %>% mutate(nchar_history = nchar(`Description/History`),
+									nb_dates_history = str_count(`Description/History`,"(19|20)\\d{2}|\\b\\d0.s")
+									)

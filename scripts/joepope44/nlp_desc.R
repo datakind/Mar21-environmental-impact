@@ -2,7 +2,9 @@ library(tidyverse)
 library(tidytext)
 library(topicmodels)
 library(tm)
-library(textmineR)
+# library(textmineR)
+library(quanteda)
+library(seededlda)
 
 # Data Handling -----------------------------------------------------------
 
@@ -43,34 +45,14 @@ acres_dtm <- DocumentTermMatrix(acres_corpus)
 review_dtm = removeSparseTerms(acres_dtm, 0.999)
 review_dtm
 
-
+# Remove documents with zero words (may not be needed after filtering out NAs)
 raw.sum <- apply(review_dtm, 1, FUN=sum)
 dtm <- review_dtm[raw.sum != 0, ]
 
 
 # LDA ---------------------------------------------------------------------
 
-# tidy_docs <- geo_text %>% 
-#   select(coop_num, text) %>% 
-#   unnest_tokens(output = word, 
-#                 input = text,
-#                 stopwords = c(stopwords::stopwords("en"), 
-#                               stopwords::stopwords(source = "smart"),
-#                               custom_stopwords),
-#                 token = "words") %>% 
-#   count(coop_num, word) %>% 
-#   filter(n>5)
-# 
-# d <- tidy_docs %>% 
-#   cast_sparse(coop_num, word, n)
-# 
-# # create a topic model
-# m <- FitLdaModel(dtm = d, 
-#                  calc_r2 = TRUE,
-#                  k = 4,
-#                  iterations = 10,
-#                  burnin = 5)
-
+# The results from this were not that insightful. See SeededLDA section for a better approach. 
 
 rm(ac_lda)
 ac_lda <- LDA(dtm, k = 6, control = list(seed = 1234))
@@ -94,4 +76,64 @@ top_terms %>%
   facet_wrap(~ topic, scales = "free") +
   scale_y_reordered()
 
-terms(ac_lda, 5)
+
+# Seeded LDA --------------------------------------------------------------
+
+# https://github.com/koheiw/seededlda
+
+# Create the topics with a few keywords to guide the LDA model 
+dict <- dictionary(file = "scripts/joepope44/topics.yml")
+print(dict)
+
+# Create new corpus for seededlda, using quanteda format 
+q_corpus = corpus(geo_text$text, docnames = geo_text$coop_num)
+
+# Create tokens and pre-process them. Can try bigrams for better fits. 
+toks <- tokens(q_corpus, 
+               remove_numbers = TRUE,
+               remove_punct = TRUE,
+               remove_symbols = TRUE) %>%
+  # tokens_select("^[A-Za-z]+$", valuetype = "regex", min_nchar = 2) %>% 
+  tokens_compound(dict) 
+
+# Create DTM to put into model. These parameters could be tweaked further. 
+dfmt <- dfm(toks) %>% 
+  dfm_remove(c(stopwords('en'), custom_stopwords)) %>% 
+  dfm_trim(min_termfreq = 0.90, termfreq_type = "quantile", 
+           max_docfreq = 0.2, docfreq_type = "prop")
+
+# Set seed and run model. Residual will create a garbage model to fit other documents into. 
+set.seed(1234)
+slda <- textmodel_seededlda(dfmt, dict, residual = TRUE, weight = 0.1)
+print(terms(slda, 20))
+
+topic <- table(topics(slda))
+print(topic)
+
+
+
+# Tranform Model Back to Document Topics for Merging ----------------------
+
+# get the top topic for each document
+top_topics <- apply(slda$theta, 1, function(x) names(x)[which.max(x)][1])
+
+# Merge together. Now each document has a label from its top topic
+# Note that in LDA a document can "belong" to multiple topics. Here we are just taking the top topic. 
+df <- cbind(geo_text, top_topics)
+rownames(df) <- NULL
+
+write_csv(df, "scripts/joepope44/seeded_lda_output.csv")
+
+# Next Steps --------------------------------------------------------------
+
+# TODO 
+# Calculate efficacy of model 
+# Tweak parameters 
+# Tweak topics.yml to narrow definitions 
+
+
+
+
+
+
+
