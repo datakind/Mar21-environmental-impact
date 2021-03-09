@@ -31,8 +31,13 @@ colnames(df) <- newcolnames
 
 
 
+##### EDA
 
-##### Visualizations
+
+
+
+
+##### Visualizations ##### 
 
 # mapping assessment funded properties
 
