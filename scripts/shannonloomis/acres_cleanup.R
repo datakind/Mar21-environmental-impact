@@ -12,26 +12,33 @@ library(tm)
 
 # USer working directory
 setwd("C:/Users/Shannon/Documents/code_repositories/Mar21-environmental-impact")
-
+sd = "scripts/shannonloomis/"
 
 # --- LOGICAL STEPS FOR CLEANUP ---#
 
 # 1. General cleanup
 #   - Format column names, data types, etc.
-source("scripts/shannonloomis/cleanup.R")
+source(paste0(sd,"cleanup.R"))
+#   *** working df = "geo_clean" ***
 
 
-# 2. Parse/combine fields for brevity
+# 2. Parse Text fields
 #   - Clean description history with NLP logic
-source("scripts/shannonloomis/former_use_keyword_extraction.R")
-#   - Combine contaminants that are similar
+source(paste0(sd,"former_use_keyword_extraction.R"))
+#   *** working df = "geo_clean" ***
 #   - Parse entity type to see if that matters??
 
-# 3. Create site info table
+
+# 3. Combine fields for brevity
+#   - Combine contaminants that are similar
+source(paste0(sd,"combine_contaminants.R"))
+
+
+# 4. Create site info table
 #   - Name, location, etc. so it can be stripped out of 
 
 
-# 4. Split by phase/action
+# 5. Split by phase/action
 #   - Break up into different assessment/cleanup phases
 #   - Keep only relevant info for that phase
 

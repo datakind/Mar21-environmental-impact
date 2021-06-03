@@ -50,6 +50,17 @@ count_cntmtn_fnd <- function(x) {
 }
 
 
+factor_to_tf = function(x) {
+  # Making this 1/0 to take max when combining contaminants later
+  y = as.character(x)
+  y[y=='Y'] = 1
+  y[y=='N'] = 0
+  y[y=='U'] = NA
+  y = as.numeric(y)
+  return(y)
+}
+
+
 
 
 # Geo Data Cleaning -------------------------------------------------------
@@ -80,8 +91,24 @@ geo_clean <- geo_data %>%
     mutate(Num_Cntmtn_Fnd = count_cntmtn_fnd(.))
 
 
+# Turn logical into T/F
+c = colnames(geo_clean)[setdiff(grep("Cntmnt",colnames(geo_clean)),grep("Descr",colnames(geo_clean)))]
+m = colnames(geo_clean)[grep("Media_",colnames(geo_clean))]
+i = c("Institutional_Ctrl_ICs_Req","IC_Catgry_Proprietary_Ctrls","IC_Catgry_Informational_Dev",
+      "IC_Catgry_Govmntal_Ctrls","IC_Catgry_Enfrcmnt_Prmt_Tools","ICs_in_Place")
+v = c("Accomplishment_Counted","Did_Ownership_Change","SFLLP_fact_into_the_ownership",
+      "Cleanup_Required",c,m,i,"Ready_For_Reuse_Ind")
+geo_clean = geo_clean %>%
+    mutate_at(v,factor_to_tf)
 
-    
+# Remove unnecessary columns
+v = c("Horizontal_Collection_Method","Source_Map_Scale",
+      "Reference_Point","Horizontal_Reference_Datum",
+      "Photographs_are_available","Video_is_available","Other_Media_Ind")
+geo_clean = geo_clean[,!(colnames(geo_clean) %in% v)]
+
+
+
 
 
 # ACS Data Cleaning -------------------------------------------------------

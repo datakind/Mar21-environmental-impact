@@ -1,0 +1,22 @@
+﻿detail,category
+Arsenic,Metal
+Asbestos,Asbestos
+Cadmium,Metal
+Chromium,Metal
+Ctrl Sbstncs,Other
+Copper,Metal
+Iron,Metal
+Lead,Metal
+Mercury,Metal
+Nickel,Metal
+None,None
+Other,Other
+Other Metals,Metal
+PAHs,PAH_SVOC
+PCBs,PCB
+Pesticides,Pesticide
+Petroleum,Petroleum
+Selenium,Metal
+SVOCs,PAH_SVOC
+Unknown,Other
+VOCs,VOC
