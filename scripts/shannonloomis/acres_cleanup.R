@@ -2,6 +2,7 @@ closeAllConnections()
 graphics.off()
 rm(list = ls())
 
+library(curl)
 library(dplyr)
 library(openxlsx)
 library(tidyverse)
@@ -32,10 +33,13 @@ source(paste0(sd,"former_use_keyword_extraction.R"))
 # 3. Combine fields for brevity
 #   - Combine contaminants that are similar
 source(paste0(sd,"combine_contaminants.R"))
+#   *** working df = "geo_clean" ***
 
 
 # 4. Create site info table
-#   - Name, location, etc. so it can be stripped out of 
+#   - Isolate name, location, etc. so it can be stripped out of model variables
+
+#   - Add ACS and other location-based indicator variables to data set
 
 
 # 5. Split by phase/action

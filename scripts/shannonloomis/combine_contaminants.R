@@ -81,106 +81,106 @@ colnames(cc) = c("detail","category")
 
 
 
-#########################################
-# PROCESS OTHER CONTAMINANT DESCRIPTION #
-#########################################
-
-
-### SPLIT INTO INDIVIDUAL DESCRIPTIONS ###
-
-# Get sites with description
-d = wdf[,c("ACRES_Property_ID","Cntmnt_Fnd_Other_Descr")]
-d = d[!is.na(d$Cntmnt_Fnd_Other_Descr),]
-
-d$Cntmnt_Fnd_Other_Descr = d$Cntmnt_Fnd_Other_Descr %>%
-  toupper %>%
-  # Get rid of digits
-  gsub("[[:digit:]]","",.) %>%
-  gsub("-"," ",.) %>% 
-  # Turn other split words into commas
-  gsub(" AND ",", ",.) %>%
-  gsub("&",", ",.) %>%
-  gsub(";",", ",.) %>%
-  gsub("\\*",", ",.) %>%
-  gsub("\\.",", ",.) %>%
-  gsub("\\'",", ",.) %>%
-  gsub('\\"',", ",.) %>%
-  gsub('\\/',", ",.)
-
-# Split multiple contaminants into 
-dl = strsplit(d$Cntmnt_Fnd_Other_Descr,",")
-dl = lapply(dl,function(x) {
-  y = trimws(x)
-  y = y[y!='Y']
-  y = y[y!='N']
-  y = y[y!='']
-  y = y[y!='NOT SPECIFIED']
-  y = y[y!='ETC']
-  return(y)
-})
-
-# Turn into dataframe
-ds = mapply(function(d,n) {
-  if (length(d) > 0) {
-    data.frame(id = n, contaminant = d)
-  } else {
-    NULL
-  }
-}, d = dl, n = as.list(d$ACRES_Property_ID),SIMPLIFY = FALSE)
-df = do.call("rbind",ds)
-
-
-
-### ADD CATEGORY TO DESCRIPTION ###
-
-# Join description to category table
-cj = cc
-cj$detail = toupper(cj$detail)
-dc = left_join(df,cj,by = c("contaminant" = "detail"))
-
-# Pull out asbsetos
-ind = c(grep("asbestos",dc$contaminant,ignore.case = T))
-ind = intersect(which(is.na(dc$category)),unique(ind))
-dc$category[ind] = 'Asbestos'
-
-# Pull out lead
-ind = c(grep("lead",dc$contaminant,ignore.case = T),
-        grep("galena",dc$contaminant,ignore.case = T))
-ind = intersect(which(is.na(dc$category)),unique(ind))
-dc$category[ind] = 'Metal'
-
-# Pull out solid waste/fill - note this includes landfill gasses and tires
-ind = c(grep("fill",dc$contaminant,ignore.case = T),
-        grep("solid waste",dc$contaminant,ignore.case = T),
-        grep("tire",dc$contaminant,ignore.case = T))
-ind = intersect(which(is.na(dc$category)),unique(ind))
-dc$category[ind] = 'Landfill'
-
-# Pull out petroleum
-o = grep("OIL",dc$contaminant)
-s = grep("SOIL",dc$contaminant)
-ind = c(setdiff(o,s), #oil but not soil (includes linseed and cooking oil...will fix later...maybe)
-        grep("diesel",dc$contaminant,ignore.case = T),
-        grep("petroleum",dc$contaminant,ignore.case = T),
-        grep("UST",dc$contaminant,ignore.case = T))
-ind = intersect(which(is.na(dc$category)),unique(ind))
-dc$category[ind] = 'Petroleum'
-
-
+# #########################################
+# # PROCESS OTHER CONTAMINANT DESCRIPTION #
+# #########################################
+# 
+# 
+# ### SPLIT INTO INDIVIDUAL DESCRIPTIONS ###
+# 
+# # Get sites with description
+# d = wdf[,c("ACRES_Property_ID","Cntmnt_Fnd_Other_Descr")]
+# d = d[!is.na(d$Cntmnt_Fnd_Other_Descr),]
+# 
+# d$Cntmnt_Fnd_Other_Descr = d$Cntmnt_Fnd_Other_Descr %>%
+#   toupper %>%
+#   # Get rid of digits
+#   gsub("[[:digit:]]","",.) %>%
+#   gsub("-"," ",.) %>% 
+#   # Turn other split words into commas
+#   gsub(" AND ",", ",.) %>%
+#   gsub("&",", ",.) %>%
+#   gsub(";",", ",.) %>%
+#   gsub("\\*",", ",.) %>%
+#   gsub("\\.",", ",.) %>%
+#   gsub("\\'",", ",.) %>%
+#   gsub('\\"',", ",.) %>%
+#   gsub('\\/',", ",.)
+# 
+# # Split multiple contaminants into 
+# dl = strsplit(d$Cntmnt_Fnd_Other_Descr,",")
+# dl = lapply(dl,function(x) {
+#   y = trimws(x)
+#   y = y[y!='Y']
+#   y = y[y!='N']
+#   y = y[y!='']
+#   y = y[y!='NOT SPECIFIED']
+#   y = y[y!='ETC']
+#   return(y)
+# })
+# 
+# # Turn into dataframe
+# ds = mapply(function(d,n) {
+#   if (length(d) > 0) {
+#     data.frame(id = n, contaminant = d)
+#   } else {
+#     NULL
+#   }
+# }, d = dl, n = as.list(d$ACRES_Property_ID),SIMPLIFY = FALSE)
+# df = do.call("rbind",ds)
+# 
+# 
+# 
+# ### ADD CATEGORY TO DESCRIPTION ###
+# 
+# # Join description to category table
+# cj = cc
+# cj$detail = toupper(cj$detail)
+# dc = left_join(df,cj,by = c("contaminant" = "detail"))
+# 
+# # Pull out asbsetos
+# ind = c(grep("asbestos",dc$contaminant,ignore.case = T))
+# ind = intersect(which(is.na(dc$category)),unique(ind))
+# dc$category[ind] = 'Asbestos'
+# 
+# # Pull out lead
+# ind = c(grep("lead",dc$contaminant,ignore.case = T),
+#         grep("galena",dc$contaminant,ignore.case = T))
+# ind = intersect(which(is.na(dc$category)),unique(ind))
+# dc$category[ind] = 'Metal'
+# 
+# # Pull out solid waste/fill - note this includes landfill gasses and tires
+# ind = c(grep("fill",dc$contaminant,ignore.case = T),
+#         grep("solid waste",dc$contaminant,ignore.case = T),
+#         grep("tire",dc$contaminant,ignore.case = T))
+# ind = intersect(which(is.na(dc$category)),unique(ind))
+# dc$category[ind] = 'Landfill'
+# 
+# # Pull out petroleum
+# o = grep("OIL",dc$contaminant)
+# s = grep("SOIL",dc$contaminant)
+# ind = c(setdiff(o,s), #oil but not soil (includes linseed and cooking oil...will fix later...maybe)
+#         grep("diesel",dc$contaminant,ignore.case = T),
+#         grep("petroleum",dc$contaminant,ignore.case = T),
+#         grep("UST",dc$contaminant,ignore.case = T))
+# ind = intersect(which(is.na(dc$category)),unique(ind))
+# dc$category[ind] = 'Petroleum'
+# 
+# 
 # 
 # # Stats on other contaminants
 # # x = count(d,Cntmnt_Fnd_Other_Descr)
 # x = dc[is.na(dc$category),]
 # x = count(x,contaminant,category)
 # #write.xlsx(x,paste0(sd,"other_contaminants.xlsx"))
-
-
-
-### TRANSFORM DESCRIPTION INTO BOOLEAN FIELDS ###
-
-# Isolate only those with category
-df = dc[!is.na(dc$category),]
-cntmnt_desc_id = split(df$id,df$category)
+# 
+# 
+# 
+# ### TRANSFORM DESCRIPTION INTO BOOLEAN FIELDS ###
+# 
+# # Isolate only those with category
+# df = dc[!is.na(dc$category),]
+# cntmnt_desc_id = split(df$id,df$category)
 
 
 
@@ -202,16 +202,16 @@ p = "Cntmnt_Fnd_"
 wdf = sub_contaminant_main_df(wdf,p)
 
 
-# Add other description boolean to df
-for (n in names(cntmnt_desc_id)) {
-  
-  cn = paste0("Cntmnt_Fnd_",n) # Column name
-  if (!(cn %in% colnames(wdf))) {wdf[[cn]] = NA} # Make column if missing
-  
-  # Turn those values into 1
-  ind = wdf$ACRES_Property_ID %in% cntmnt_desc_id[[n]]
-  wdf[[cn]][ind] = 1
-}
+# # Add other description boolean to df
+# for (n in names(cntmnt_desc_id)) {
+#   
+#   cn = paste0("Cntmnt_Fnd_",n) # Column name
+#   if (!(cn %in% colnames(wdf))) {wdf[[cn]] = NA} # Make column if missing
+#   
+#   # Turn those values into 1
+#   ind = wdf$ACRES_Property_ID %in% cntmnt_desc_id[[n]]
+#   wdf[[cn]][ind] = 1
+# }
 
 
 
