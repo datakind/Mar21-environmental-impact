@@ -88,7 +88,7 @@ geo_clean <- geo_data %>%
     mutate_if(is.factor, ~ .x %>% fct_recode(Y = 'x', Y = 'y',N = 'n', U = 'u')) %>% # Recode those factors that don't match. 
     mutate(Property_City_clean = clean_city_property(Property_City)) %>%
     mutate_at(vars(GEOID), as.numeric) %>% 
-    mutate(Num_Cntmtn_Fnd = count_cntmtn_fnd(.))
+    mutate(Num_Cntmnt_Fnd = count_cntmtn_fnd(.))
 
 
 # Turn logical into T/F
@@ -102,13 +102,57 @@ geo_clean = geo_clean %>%
     mutate_at(v,factor_to_tf)
 
 # Remove unnecessary columns
-v = c("Horizontal_Collection_Method","Source_Map_Scale",
+v = c("Accomplishment_Counted","Radius","Num_of_Cleanup_and_Redev_Jobs",
+      "Horizontal_Collection_Method","Source_Map_Scale",
       "Reference_Point","Horizontal_Reference_Datum",
       "Photographs_are_available","Video_is_available","Other_Media_Ind")
 geo_clean = geo_clean[,!(colnames(geo_clean) %in% v)]
 
+# Add cleanup year
+geo_clean$Cleanup_Year = format(geo_clean$Cleanup_Start_Date,"%Y")
 
 
+
+
+
+# CPI Monetary Adjustment -------------------------------------------------
+
+wdf = geo_clean
+
+# Pull in data
+monthly_cpi = read.csv("data/CPIAUCSL.csv")
+monthly_cpi$year = format(as.Date(monthly_cpi$DATE,format="%d/%m/%Y"),"%Y")
+
+# Average by year
+annual_cpi = aggregate(monthly_cpi$CPIAUCSL,by = list(year = monthly_cpi$year),FUN = mean)
+
+# Normalize to most recent full year
+n = count(monthly_cpi,year)
+n = n[n$n == 12,]
+y = max(n$year)
+v = annual_cpi$x[annual_cpi$year == y]
+annual_cpi$x = annual_cpi$x/v
+
+# Adjust Assessment funding
+y = "Assessment"
+v = "Amt_of_Assessment_Funding"
+cpi = annual_cpi
+colnames(cpi) = paste0(y,"_",c("Year","CPI"))
+wdf = left_join(wdf,cpi,by = paste0(y,"_Year"))
+wdf[[paste0("Adj_",v)]] = wdf[[v]]/wdf[[paste0(y,"_CPI")]]
+
+# Adjust Cleanup funding
+y = "Cleanup"
+v = "Amount_of_Cleanup_Funding"
+cpi = annual_cpi
+colnames(cpi) = paste0(y,"_",c("Year","CPI"))
+wdf = left_join(wdf,cpi,by = paste0(y,"_Year"))
+n = wdf[[v]]
+d = wdf[[paste0(y,"_CPI")]]
+a = n/d
+wdf[[paste0("Adj_",v)]] = a
+
+geo_clean = wdf
 
 
 # ACS Data Cleaning -------------------------------------------------------

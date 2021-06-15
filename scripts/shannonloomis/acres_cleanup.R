@@ -39,7 +39,6 @@ source(paste0(sd,"combine_contaminants.R"))
 # 4. Create site info table
 #   - Isolate name, location, etc. so it can be stripped out of model variables
 
-#   - Add ACS and other location-based indicator variables to data set
 
 
 # 5. Split by phase/action
