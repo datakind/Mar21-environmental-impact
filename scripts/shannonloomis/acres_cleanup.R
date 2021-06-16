@@ -10,10 +10,12 @@ library(tictoc)
 library(tm)
 
 
+tic("\nFull ACRES data processing")
 
 # USer working directory
 setwd("C:/Users/Shannon/Documents/code_repositories/Mar21-environmental-impact")
 sd = "scripts/shannonloomis/"
+
 
 # --- LOGICAL STEPS FOR CLEANUP ---#
 
@@ -36,17 +38,17 @@ source(paste0(sd,"combine_contaminants.R"))
 #   *** working df = "geo_clean" ***
 
 
-# 4. Create site info table
-#   - Isolate name, location, etc. so it can be stripped out of model variables
-
-
-
-# 5. Split by phase/action
+# 4. Split by phase/action
 #   - Break up into different assessment/cleanup phases
 #   - Keep only relevant info for that phase
+source(paste0(sd,"split_by_phase.R"))
+
+# *** working data:
+#       model_data =  list of dataframes for individual models
+#       eda_data =    list of dataframes for EDA/
+#                     joining additional datasets to model data based on geography
 
 
-
-
+toc()
 
 

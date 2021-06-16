@@ -1,5 +1,7 @@
 
 
+tic("Data split for EDA and modeling")
+
 wdf = geo_clean[!is.na(wdf$ACRES_Property_ID),]
 
 
@@ -34,8 +36,6 @@ wdf = wdf[,!(colnames(wdf) %in% c(lv,gv))]
 
 
 
-
-
 ### DEFINE GROUPS OF VARIABLES FOR MODEL ADDITION ###
 
 pred = list(id = iv,
@@ -58,12 +58,6 @@ pred = list(id = iv,
                     "Enrollment_ST_Tribal_Prg","Program_Code"))
 
 
-
-
-
-############################################
-# SPLIT INTO ASSESSMENT AND CLEANUP PHASES #
-############################################
 
 ### PROPERTY INFO ###
 
@@ -108,7 +102,22 @@ prop_info = d
 
 
 
-### COST - PHASE I ENVIRONMENTAL ASSESSMENT ###
+### CONTAMINANTS FOUND AND MEDIA AFFECTED ###
+
+# Get contaminants and media
+v = c("id","cntmnt_fnd","media_affected")
+x = wdf[!is.na(wdf$ACRES_Property_ID),]
+n = unlist(pred[names(pred) %in% v])
+d = unique(x[,n])
+cntmnt_media = d
+
+
+
+
+
+####################################
+# PHASE I ENVIRONMENTAL ASSESSMENT #
+####################################
 
 # Define phases and variable groups
 p = 'Phase I Environmental Assessment'
@@ -168,6 +177,11 @@ cost_phaseI = d[,c("cost",colnames(d)[colnames(d) != "cost"])]
 
 
 
+
+#################################
+# PHASE II AND SUPP ASSESSMENTS #
+#################################
+
 ### ADVANCE TO ADDITIONAL ASSESSMENT ###
 
 # Determine if site goes to next assessment phase
@@ -223,11 +237,10 @@ d = unique(d)
 da = d %>%  
    group_by(ACRES_Property_ID) %>% 
    summarise(cost = sum(cost),
-             min_year = as.numeric(min(Assessment_Year)),
-             max_year = as.numeric(max(Assessment_Year)),
-             n = n())
-
-
+             Assessment_Start_Date = min(Assessment_Start_Date),
+             Assessment_Completion_Date = max(Assessment_Completion_Date),
+             Assessment_Year = min(Assessment_Year),
+             Individual_Assessments = n())
 
 # # Look at cost of assessment
 # cost = da$cost
@@ -239,21 +252,166 @@ da = d %>%
 # }
 
 # *** No striking biased patterns jumping out. Stopping here. ***
-d = da[,c("ACRES_Property_ID","cost","min_year")]
-colnames(d)[3] = "Assessment_Year"
-d = inner_join(d,prop_info,by = "ACRES_Property_ID")
+
+d = inner_join(prop_info,da,by = "ACRES_Property_ID")
 cost_phaseII = d[,c("cost",colnames(d)[colnames(d) != "cost"])]
 
 
 
 
 
+################
+# SITE CLEANUP #
+################
 
 
-# # predict cleanup (including ICs)
-# 
-# #Cleanup Planning # add to cleanup cost                
+### ADVANCE TO CLEANUP ###
+
+# Determine if site goes to cleanup
+x = unique(wdf[,c("ACRES_Property_ID","Cleanup_Required",
+                  "Institutional_Ctrl_ICs_Req","Amount_of_Cleanup_Funding")])
+x$Cleanup_Funding = NA
+x$Cleanup_Funding[x$Amount_of_Cleanup_Funding >= 1000] = 1
+x$Amount_of_Cleanup_Funding = NULL
+x$req = apply(x,1,function(x) {max(x[2:4],na.rm = T)})
+x = x[!is.infinite(x$req),c("req","ACRES_Property_ID")]
+x = aggregate(x$req,by = list(ACRES_Property_ID = x$ACRES_Property_ID),FUN = max)
+colnames(x)[2] = "req"
+x[,2] = as.numeric(x[,2])
+
+# Join phase to site data
+j = inner_join(prop_info,x,by = "ACRES_Property_ID")
+j = inner_join(j,cntmnt_media,by = "ACRES_Property_ID")
+req_cleanup = j[,c("req",colnames(j)[!(colnames(j) %in% "req")])]
 
 
 
 
+### CLEANUP PLANNING COST ###
+
+# Define phases and variable groups
+p = 'Cleanup Planning'
+a = "Adj_Amt_of_Assessment_Funding"
+v = c("id","assmnt")
+
+# Pull data of interest
+x = wdf[wdf$Assessment_Phase %in% p & !is.na(wdf[[a]]) &!is.na(wdf$ACRES_Property_ID),]
+n = unlist(pred[names(pred) %in% v])
+d = unique(x[,n])
+
+# Define cost column and remove everything less than $100
+d$cost = round(d[[a]])
+d = d[d$cost >= 100,]
+
+# # Split by site and examine multi rows
+# l = split(d,d$ACRES_Property_ID)
+# r = unlist(lapply(l, nrow))
+# ind = which(r > 1)
+# xl = l[ind]
+# *** No real pattern. Summing cost bc can have multiple phase IIs
+#     and/or supplemental assessments ***
+
+# Remove unnecessary columns
+v = c("Assessment_Phase",#"Source_of_Assessment_Funding",
+   "Amt_of_Assessment_Funding","Assessment_CPI","Adj_Amt_of_Assessment_Funding")
+d = d[,!(colnames(d) %in% v)]
+d = unique(d)
+
+
+# Summarize assessment data by site
+da = d %>%  
+   group_by(ACRES_Property_ID) %>% 
+   summarise(planning_cost = sum(cost),
+             Assessment_Start_Date = min(Assessment_Start_Date),
+             Assessment_Completion_Date = max(Assessment_Completion_Date),
+             Assessment_Year = min(Assessment_Year),
+             Individual_Assessments = n())
+cleanup_planning = da
+
+
+
+
+### CLEANUP COST ###
+
+# Define phases and variable groups
+a = "Adj_Amount_of_Cleanup_Funding"
+v = c("id","cleanup")
+
+# Pull data of interest
+x = wdf[!is.na(wdf[[a]]) &!is.na(wdf$ACRES_Property_ID),]
+n = unlist(pred[names(pred) %in% v])
+d = unique(x[,n])
+
+# Define cost column and remove everything less than $100
+d$cost = round(d[[a]])
+d = d[d$cost >= 100,]
+
+# # Split by site and examine multi rows
+# l = split(d,d$ACRES_Property_ID)
+# r = unlist(lapply(l, nrow))
+# ind = which(r > 1)
+# xl = l[ind]
+# *** Summing cost bc usually from multiple sources and/or dates ***
+
+
+# Summarize cleanup data by site
+da = d %>%  
+   group_by(ACRES_Property_ID) %>% 
+   summarise(cleanup_cost = sum(cost),
+             Cleanup_Start_Date = min(Cleanup_Start_Date),
+             Cleanup_Completion_Date = max(Cleanup_Completion_Date),
+             Cleanup_Year = min(Cleanup_Year),
+             Acres_Cleaned_Up = median(ACRES_Cleaned_Up),
+             Acreage_and_Greenspace_Created = median(Acreage_and_Greenspace_Created),
+             Individual_Cleanups = n())
+cleanups = da
+
+
+
+
+### COMBINE PLANNING AND CLEANING COST FOR FULL COST OF CLEANUP ###
+
+# Join and add cost
+d = full_join(cleanup_planning,cleanups,by = "ACRES_Property_ID")
+p = d$planning_cost
+p[is.na(p)] = 0
+c = d$cleanup_cost
+c[is.na(c)] = 0
+d$cost = p + c
+
+# # Look at cost of cleanup
+# cost = d$cost
+# q = quantile(cost,probs = c(.01,.05,.1,.5,.9,.95,.99),na.rm = TRUE)
+# hist(log10(cost),breaks = 25,main = "Cleanup Cost",xlab = "log10(cost) (2020 dollars)")
+
+# Get cleaned contaminants
+v = c("id","cntmnt_clnd_up","media_clnd_up")
+x = wdf[!is.na(wdf$ACRES_Property_ID),]
+n = unlist(pred[names(pred) %in% v])
+cm = unique(x[,n])
+
+# Add property and contaminant info
+j = inner_join(d,prop_info,by = "ACRES_Property_ID")
+j = inner_join(j,cntmnt_media,by = "ACRES_Property_ID")
+j = inner_join(j,cm,by = "ACRES_Property_ID")
+cost_cleanup = j
+
+
+
+
+###############################################
+# RETURN DATA IN LIST FORM FOR EASY REFERENCE #
+###############################################
+
+model_data = list(cost_phaseI = cost_phaseI,
+                  req_phaseII = req_phaseII,
+                  cost_phaseII = cost_phaseII,
+                  req_cleanup = req_cleanup,
+                  cost_cleanup = cost_cleanup)
+
+eda_data = list(full_acres = geo_clean,
+                location = loc_clean,
+                grant = grant_clean,
+                assess_clean = unique(wdf))
+
+toc()
